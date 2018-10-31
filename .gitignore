@@ -1,4 +1,11 @@
 *.o
+*.a
+.lastmake*
 
-AMG-1.1/*/lib*.a
+*nettiles*yaml
+*proctiles*yaml
+
 AMG-1.1/test/amg
+
+milc_qcd-7.8.0/*/localmake
+milc_qcd-7.8.0/ks_imp_dyn/su3_rmd
