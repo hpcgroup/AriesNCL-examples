@@ -1,0 +1,14 @@
+SU3 Wilson valence fermions
+MIMD version 7
+Machine = QMP (portable), with 1 nodes
+start: Sun Sep 27 09:34:12 2009
+
+type 0 for no prompts  or 1 for prompts
+nx 8
+ny 8
+nz 8
+nt 8
+
+get_i: ERROR IN INPUT: expected iseed but found number_of_kappas
+exit: Sun Sep 27 09:34:12 2009
+
