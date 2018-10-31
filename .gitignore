@@ -1,0 +1,4 @@
+*.o
+
+AMG-1.1/*/lib*.a
+AMG-1.1/test/amg
