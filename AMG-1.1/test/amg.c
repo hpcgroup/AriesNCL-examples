@@ -37,6 +37,16 @@
 
 #include <time.h>
 
+#if ENABLE_ARIESNCL
+#include "AriesCounters.h"
+int AC_event_set;
+char** AC_events;
+long long * AC_values;
+int AC_event_count;
+MPI_Comm mod_comm;
+int CPN = 64;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -91,6 +101,7 @@ main( hypre_int argc,
    HYPRE_Solver        pcg_precond=NULL, pcg_precond_gotten;
 
    HYPRE_Int           myid;
+   HYPRE_Int           num_procs;
    HYPRE_Int          *dof_func;
    HYPRE_Int	       num_functions = 1;
    HYPRE_Int	       num_paths = 1;
@@ -144,6 +155,24 @@ main( hypre_int argc,
    hypre_MPI_Init(&argc, &argv);
 
    hypre_MPI_Comm_rank(hypre_MPI_COMM_WORLD, &myid );
+   hypre_MPI_Comm_size(hypre_MPI_COMM_WORLD, &num_procs );
+
+#if ENABLE_ARIESNCL
+   // Only want to gather on every nth rank, so create a new MPI_Group
+   MPI_Group mod_group, group_world;
+   int numMem = num_procs / CPN;
+   int members[numMem];
+   int rank;
+   for (rank = 0; rank < numMem; rank++) {
+      members[rank] = rank * CPN;
+   }
+   MPI_Comm_group(MPI_COMM_WORLD, &group_world);
+   MPI_Group_incl(group_world, numMem, members, &mod_group);
+   MPI_Comm_create(MPI_COMM_WORLD, mod_group, &mod_comm);
+
+   // Initialize Papi and counter eventset.
+   InitAriesCounters(argv[0], myid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
 
    /*-----------------------------------------------------------
     * Set defaults
@@ -343,6 +372,7 @@ main( hypre_int argc,
 
    }
 
+
    /*-----------------------------------------------------------
     * Problem 1: Solve one large problem with AMG-PCG
     *-----------------------------------------------------------*/
@@ -444,7 +474,7 @@ main( hypre_int argc,
          FOM1 /= 4.0;
          printf ("\n\nFigure of Merit (FOM_1): %e\n\n", FOM1);
       }
- 
+
    }
 
    /*-----------------------------------------------------------
@@ -459,9 +489,16 @@ main( hypre_int argc,
       time_index = hypre_InitializeTiming("GMRES Solve");
       hypre_MPI_Barrier(hypre_MPI_COMM_WORLD);
       hypre_BeginTiming(time_index);
+      MPI_Pcontrol(1);
+
       for (j=0; j < time_steps; j++)
       {
  
+#if ENABLE_ARIESNCL
+	// Start counters collection
+	StartRecordAriesCounters(myid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
+
          HYPRE_ParCSRGMRESCreate(hypre_MPI_COMM_WORLD, &pcg_solver);
          HYPRE_GMRESSetKDim(pcg_solver, k_dim);
          HYPRE_GMRESSetMaxIter(pcg_solver, max_iter);
@@ -550,7 +587,14 @@ main( hypre_int argc,
             HYPRE_ParVectorSetConstantValues(x,0.0);
             HYPRE_ParVectorSetConstantValues(b,1.0);
          }
+
+#if ENABLE_ARIESNCL
+      EndRecordAriesCounters(myid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
+
       }
+
+      MPI_Pcontrol(0);
       hypre_MPI_Barrier(hypre_MPI_COMM_WORLD);
       hypre_EndTiming(time_index);
       hypre_PrintTiming("Problem 2: Cumulative AMG-GMRES Solve Time", &wall_time, hypre_MPI_COMM_WORLD);
@@ -569,7 +613,6 @@ main( hypre_int argc,
          hypre_printf("\n");
       }
    }
- 
 
    /*-----------------------------------------------------------
     * Print the solution
@@ -589,6 +632,12 @@ main( hypre_int argc,
    HYPRE_IJVectorDestroy(ij_b);
 
    HYPRE_IJVectorDestroy(ij_x);
+
+
+#if ENABLE_ARIESNCL
+   /* Cleanup for counters collection */
+   FinalizeAriesCounters(&mod_comm, myid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
 
 /*
   hypre_FinalizeMemoryDebug();
