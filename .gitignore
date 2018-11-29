@@ -6,8 +6,10 @@
 *.d
 *.f90
 
-*nettiles*yaml
-*proctiles*yaml
+counters.txt
+*counters.*.bin
+*.timings.json
+*.mpiP
 
 AMG-1.1/test/amg
 

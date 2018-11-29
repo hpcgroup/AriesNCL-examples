@@ -24,6 +24,18 @@
 #include "../include/io_scidac.h"
 #endif
 
+#if ENABLE_ARIESNCL
+#include "mpi.h"
+#include "AriesCounters.h"
+int AC_event_set;
+char** AC_events;
+long long * AC_values;
+int AC_event_count;
+int taskid, numtasks;
+MPI_Comm mod_comm;
+int CPN = 64;
+#endif
+
 EXTERN gauge_header start_lat_hdr;	/* Input gauge field header */
 
 int
@@ -35,6 +47,28 @@ main( int argc, char **argv )
   double dtime, dclock();
   
   initialize_machine(&argc,&argv);
+
+#if ENABLE_ARIESNCL
+  /* Initialize for counters collection */
+  MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
+
+  // Only want to gather on every 16th rank, so create a new MPI_Group
+  MPI_Group mod_group, group_world;
+  int numMem = numtasks / CPN;
+  int members[numMem];
+  int rank;
+  for (rank=0; rank<numMem; rank++)
+  {
+    members[rank] = rank * CPN;
+  }
+  MPI_Comm_group(MPI_COMM_WORLD, &group_world);
+  MPI_Group_incl(group_world, numMem, members, &mod_group);
+  MPI_Comm_create(MPI_COMM_WORLD, mod_group, &mod_comm);
+
+  // Initialize Papi and counter eventset.
+  InitAriesCounters(argv[0], taskid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
 
   /* Remap standard I/O */
   if(remap_stdio_from_args(argc, argv) == 1)terminate(1);
@@ -161,6 +195,11 @@ main( int argc, char **argv )
 
     }
   }
+
+#if ENABLE_ARIESNCL
+  /* Cleanup for counters collection */
+  FinalizeAriesCounters(&mod_comm, taskid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
 
 #ifdef HAVE_QUDA
   qudaFinalize();

@@ -23,6 +23,17 @@
 #endif
 #endif
 
+#if ENABLE_ARIESNCL
+#include "mpi.h"
+#include "AriesCounters.h"
+extern int AC_event_set;
+extern char** AC_events;
+extern long long * AC_values;
+extern int AC_event_count;
+extern int taskid, numtasks;
+extern int CPN;
+#endif
+
 int update()  {
   int step, iters=0;
   int n;
@@ -39,8 +50,15 @@ int update()  {
     /* In this application, the number of naik terms is 1 or 2 only */
     n = fermion_links_get_n_naiks(fn_links);
 
+    MPI_Pcontrol(1);
+
     /* do "steps" microcanonical steps"  */
     for(step=1; step <= steps; step++){
+
+#if ENABLE_ARIESNCL
+        // Start counters collection
+        StartRecordAriesCounters(taskid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
  
 #ifdef PHI_ALGORITHM
         /* generate a pseudofermion configuration only at start*/
@@ -152,8 +170,12 @@ int update()  {
 	rephase( OFF );
         reunitarize();
 	rephase( ON );
-
+#if ENABLE_ARIESNCL
+        EndRecordAriesCounters(taskid, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
     }	/* end loop over microcanonical steps */
+
+    MPI_Pcontrol(0);
 
 #ifdef HMC_ALGORITHM
     /* find action */
