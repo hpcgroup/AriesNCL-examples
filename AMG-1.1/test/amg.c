@@ -113,7 +113,7 @@ main( hypre_int argc,
    HYPRE_Int first_local_row, last_local_row, local_num_rows;
    HYPRE_Int first_local_col, last_local_col, local_num_cols;
 
-   HYPRE_Int time_steps = 6;
+   HYPRE_Int time_steps = 20;
 
    /* parameters for BoomerAMG */
    HYPRE_Int    P_max_elmts = 8;
@@ -555,7 +555,7 @@ main( hypre_int argc,
          }
          cum_num_its += num_iterations;
       
-         for (i=0; i < 4; i++)
+         /* for (i=0; i < 4; i++)
          {
             HYPRE_Int gmres_iter = 6-i;
             eps = 0.01;
@@ -574,7 +574,7 @@ main( hypre_int argc,
                hypre_printf("\n");
             }
             cum_num_its += num_iterations;
-         }
+         } */
  
          HYPRE_BoomerAMGDestroy(pcg_precond);
 
