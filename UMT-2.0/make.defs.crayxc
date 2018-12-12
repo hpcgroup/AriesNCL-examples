@@ -7,7 +7,6 @@ USE_HPM         = off
 USE_GPROF       = off
 USE_TAU         = off
 USE_TAU_PDT     = off
-USE_OPENMP      = on
 STATIC_LINK     = off
 CFLAGS_CMG      = 
 
@@ -23,8 +22,8 @@ endif
 
 CFLAGS_CMG     += 
 
-OPENMP_FLAGS    = -openmp 
-FLIBS           =
+OPENMP_FLAGS    = -qopenmp
+FLIBS           = -Wl,-rpath -Wl,$(LD_LIBRARY_PATH) -Wl,--enable-new-dtags -L$(LD_LIBRARY_PATH)
 
 CPPFLAGS += -DLINUX -DLinux -DUSE_MPI $(GPROF_FLAGS)
 CPPFFLAGS = -DLINUX -DLinux -Dmpi -DMPI -DUSE_MPI $(GPROF_FLAGS)
@@ -46,16 +45,36 @@ F90             = ftn
 FPP             = fpp
 
 F90FLAGS_OPT    =  -g -O3 -no-prec-div  -fPIC $(OPENMP_FLAGS)
-CXXFLAGS_OPT	=  -g -O3 -w  -no-prec-div -fPIC  $(OPENMP_FLAGS)
+CXXFLAGS_OPT	=  -g -O3 -w -no-prec-div -fPIC  $(OPENMP_FLAGS)
 CFLAGS_OPT	=  -g -O3 -w -no-prec-div -fPIC  $(OPENMP_FLAGS)
+
+
+CXXFLAGS = $(CFLAGS_CMG) $(INCPATH)
+CFLAGS = $(CFLAGS_CMG) $(INCPATH)
+F90FLAGS = $(INCPATH)
+
+ifeq ($(OPT),on)
+  CXXFLAGS += $(CXXFLAGS_OPT)
+  CFLAGS += $(CFLAGS_OPT)
+  F90FLAGS += $(F90FLAGS_OPT)
+endif
+
+ifeq ($(DEBUG),on)
+  CXXFLAGS += $(CXXFLAGS_DEBUG)
+  CFLAGS += $(CFLAGS_DEBUG)
+  F90FLAGS += $(F90FLAGS_DEBUG)
+endif
+
+F90FLAGS +=  $(CPPFFLAGS)
 
 
 LD              = $(CXX)
 LIB_EXT         = so
-LDFLAGS         =  -shared -fPIC
+LDFLAGS         = -shared -fPIC
 
 LINK            = $(CXX)
 LINKFLAGS       = -dynamic $(CXXFLAGS)
+
 
 #
 # These PLATFORM_*_EXTRAS flags are to add additional paths/libs for building 
@@ -91,29 +110,9 @@ PLATFORM_TetonTest_EXTRAS = $(OPENMP_FLAGS) $(MPI_LIB_PATH) -L$(CWD)/../CMG_CLEA
 
 #------------------------------------------------ END ----------------------------------------------------------
 
-
-CXXFLAGS = $(CFLAGS_CMG) $(INCPATH)
-CFLAGS = $(CFLAGS_CMG) $(INCPATH)
-F90FLAGS = $(INCPATH)
-
-ifeq ($(OPT),on)
-  CXXFLAGS += $(CXXFLAGS_OPT) 
-  CFLAGS += $(CFLAGS_OPT) 
-  F90FLAGS += $(F90FLAGS_OPT) 
-endif
-
-ifeq ($(DEBUG),on)
-  CXXFLAGS += $(CXXFLAGS_DEBUG) 
-  CFLAGS += $(CFLAGS_DEBUG) 
-  F90FLAGS += $(F90FLAGS_DEBUG) 
-endif
-
-F90FLAGS +=  $(CPPFFLAGS)
-
 %.o : %.cc
 	$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
 
 %.d: %.cc
 	$(CXX) -c $(CFLAGS_CMG) $(CPPFLAGS) $(INCPATH) $< -MM -MF $@
-
 
