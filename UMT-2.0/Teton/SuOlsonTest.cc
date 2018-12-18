@@ -20,6 +20,18 @@
 #include "TAU.h"
 #endif
 
+#if ENABLE_ARIESNCL
+extern "C" {
+    #include "AriesCounters.h"
+}
+int AC_event_set;
+char** AC_events;
+long long * AC_values;
+int AC_event_count;
+MPI_Comm mod_comm;
+int CPN = 64;
+#endif
+
 void initialize(MeshBase& myMesh, Teton<MeshBase>& theTeton, PartList<MeshBase>& myPartList,
                 int theNumGroups, int quadType, int theOrder, int Npolar, int Nazimu);
 
@@ -43,6 +55,23 @@ int main(int argc, char* argv[])
     MPI_Init(&argc,&argv);
     MPI_Comm_rank(MPI_COMM_WORLD,&myRank);
     MPI_Comm_size(MPI_COMM_WORLD,&numProcs);
+
+#if ENABLE_ARIESNCL
+    // Only want to gather on every nth rank, so create a new MPI_Group
+    MPI_Group mod_group, group_world;
+    int numMem = numProcs / CPN;
+    int members[numMem];
+    int rank;
+    for (rank = 0; rank < numMem; rank++) {
+        members[rank] = rank * CPN;
+    }
+    MPI_Comm_group(MPI_COMM_WORLD, &group_world);
+    MPI_Group_incl(group_world, numMem, members, &mod_group);
+    MPI_Comm_create(MPI_COMM_WORLD, mod_group, &mod_comm);
+
+    // Initialize Papi and counter eventset.
+    InitAriesCounters(argv[0], myRank, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
     
     if( argc <2 )
     {
@@ -183,11 +212,16 @@ int main(int argc, char* argv[])
     int numFluxes = myTetonObject.psir.size();
     int cumulativeIterationCount= 0;
     double cumulativeWorkTime = 0.0;
+    MPI_Pcontrol(1);
     
     if(myRank == 0)
         cout<<" Starting time advance..."<<endl;
     for(time=0;time<goalTime; time+= dt)
     {
+#if ENABLE_ARIESNCL
+        // Start counters collection
+        StartRecordAriesCounters(myRank, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
         dt = newDT( myTetonObject );
         if( time + dt >=goalTime ) 
         {
@@ -201,7 +235,12 @@ int main(int argc, char* argv[])
     
         cumulativeWorkTime += advance(myMesh, myTetonObject, myPartList);
         cumulativeIterationCount += myTetonObject.ninrt;
+#if ENABLE_ARIESNCL
+        EndRecordAriesCounters(myRank, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
+#endif
     }
+
+    MPI_Pcontrol(0);
     if( myRank == 0 )
         cout<<" SuOlson Test version "<<theVersionNumber<<" completed at time= "<<time<<"  goalTime= "<<goalTime<<endl;
 
@@ -223,6 +262,11 @@ int main(int argc, char* argv[])
 
 #ifdef PROFILING_ON
     TAU_DB_DUMP_PREFIX("profile");  
+#endif
+
+#if ENABLE_ARIESNCL
+    /* Cleanup for counters collection */
+    FinalizeAriesCounters(&mod_comm, myRank, CPN, &AC_event_set, &AC_events, &AC_values, &AC_event_count);
 #endif
 
     MPI_Finalize();

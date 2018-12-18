@@ -23,7 +23,7 @@ endif
 CFLAGS_CMG     += 
 
 OPENMP_FLAGS    = -qopenmp
-FLIBS           = -Wl,-rpath -Wl,$(LD_LIBRARY_PATH) -Wl,--enable-new-dtags -L$(LD_LIBRARY_PATH)
+FLIBS           = -Wl,-rpath -Wl,$(LD_LIBRARY_PATH) -Wl,--enable-new-dtags -L$(LD_LIBRARY_PATH), -Wl,-rpath,/global/homes/b/bhatele/llnl/AriesNCL/src -Wl,-rpath,/global/homes/b/bhatele/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/mpip-3.4.1/lib -Wl,-rpath,/global/homes/b/bhatele/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/libdwarf-20180129/lib -Wl,-rpath,/global/homes/b/bhatele/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/libelf-0.8.13/lib -Wl,-rpath,/global/homes/b/bhatele/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/libunwind-1.2.1/lib -Wl,-rpath,/global/homes/b/bhatele/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/zlib-1.2.11/lib
 
 CPPFLAGS += -DLINUX -DLinux -DUSE_MPI $(GPROF_FLAGS)
 CPPFFLAGS = -DLINUX -DLinux -Dmpi -DMPI -DUSE_MPI $(GPROF_FLAGS)

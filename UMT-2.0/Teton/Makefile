@@ -2,13 +2,13 @@ topsrcdir=..
 
 include ../make.defs
 
-INCPATH += -I. -I../cmg2Kull/sources -I../CMG_CLEAN/src -I$(CWD)/utilities
+INCPATH += -I. -I../cmg2Kull/sources -I../CMG_CLEAN/src -I$(CWD)/utilities -DENABLE_ARIESNCL=1 -I$(HOME)/llnl/AriesNCL/src
 
 
 # Our locally built libs that need to be linked in
 
 
-EXE_LIBS +=  $(PLATFORM_EXE_EXTRAS)  -lInfrastructure -lTetonUtils -lc2k -lcmgp $(FLIBS) $(LIBS) 
+EXE_LIBS +=  $(PLATFORM_EXE_EXTRAS)  -lInfrastructure -lTetonUtils -lc2k -lcmgp -L$(HOME)/llnl/AriesNCL/src -lariesncl -L$(HOME)/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/mpip-3.4.1/lib -lmpiP -L$(HOME)/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/libdwarf-20180129/lib -ldwarf -L$(HOME)/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/libelf-0.8.13/lib -lelf -L$(HOME)/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/libunwind-1.2.1/lib -lunwind -lbfd -liberty -L$(HOME)/llnl/spack/opt/spack/cray-cnl6-haswell/intel-19.0.0.117/zlib-1.2.11/lib -lz $(FLIBS) $(LIBS)
 
 LIBPATH += $(PLATFORM_LIBPATH_EXTRAS)
 
