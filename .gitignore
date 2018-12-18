@@ -13,8 +13,12 @@ counters.txt
 
 AMG-1.1/test/amg
 
+milc_qcd-7.8.0/ks_imp_dyn/gauge_action.h
+milc_qcd-7.8.0/ks_imp_dyn/quark_action.h
 milc_qcd-7.8.0/*/localmake
 milc_qcd-7.8.0/ks_imp_dyn/su3_rmd
+
+miniVite-1.0/dspl
 
 MiniDFT-1.1.1/src/mini_dft
 

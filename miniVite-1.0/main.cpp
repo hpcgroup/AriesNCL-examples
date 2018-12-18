@@ -64,6 +64,7 @@ static int randomEdgePercent = 0;
 static bool randomNumberLCG = false;
 static bool isUnitEdgeWeight = true;
 static double threshold = 1.0E-6;
+static int numPhases = 10;
 
 // parse command line parameters
 static void parseCommandLine(const int argc, char * const argv[]);
@@ -132,42 +133,44 @@ int main(int argc, char *argv[])
               << nvRGG << " vertices (in s): " << (tdt/nprocs) << std::endl;
   }
 
-  double currMod = -1.0;
-  double prevMod = -1.0;
-  double total = 0.0;
+  for(int phase=0; phase<numPhases; phase++) {
+    double currMod = -1.0;
+    double prevMod = -1.0;
+    double total = 0.0;
 
-  std::vector<GraphElem> ssizes, rsizes, svdata, rvdata;
+    std::vector<GraphElem> ssizes, rsizes, svdata, rvdata;
 #if defined(USE_MPI_RMA)
-  MPI_Win commwin;
+    MPI_Win commwin;
 #endif
-  size_t ssz = 0, rsz = 0;
-  int iters = 0;
-    
-  MPI_Barrier(MPI_COMM_WORLD);
+    size_t ssz = 0, rsz = 0;
+    int iters = 0;
 
-  t1 = MPI_Wtime();
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    t1 = MPI_Wtime();
 
 #if defined(USE_MPI_RMA)
-  currMod = distLouvainMethod(me, nprocs, *g, ssz, rsz, ssizes, rsizes, 
-                svdata, rvdata, currMod, threshold, iters, commwin);
+    currMod = distLouvainMethod(me, nprocs, *g, ssz, rsz, ssizes, rsizes,
+	          svdata, rvdata, currMod, threshold, iters, commwin);
 #else
-  currMod = distLouvainMethod(me, nprocs, *g, ssz, rsz, ssizes, rsizes, 
-                svdata, rvdata, currMod, threshold, iters);
+    currMod = distLouvainMethod(me, nprocs, *g, ssz, rsz, ssizes, rsizes,
+	          svdata, rvdata, currMod, threshold, iters);
 #endif
-  MPI_Barrier(MPI_COMM_WORLD);
-  t0 = MPI_Wtime();
-  
-  if(me == 0) {
+    MPI_Barrier(MPI_COMM_WORLD);
+    t0 = MPI_Wtime();
+
+    if(me == 0) {
       std::cout << "Modularity: " << currMod << ", Iterations: " 
-          << iters << ", Time (in s): "<<t0-t1<< std::endl;
+	      << iters << ", Time (in s): "<<t0-t1<< std::endl;
 
       std::cout << "**********************************************************************" << std::endl;
+    }
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
 
-  double tot_time = 0.0;
-  MPI_Reduce(&total, &tot_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  // double tot_time = 0.0;
+  // MPI_Reduce(&total, &tot_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   
   delete g;
   destroyCommunityMPIType();
@@ -181,7 +184,7 @@ void parseCommandLine(const int argc, char * const argv[])
 {
   int ret;
 
-  while ((ret = getopt(argc, argv, "f:r:t:n:wlp:")) != -1) {
+  while ((ret = getopt(argc, argv, "f:r:t:n:wlp:i:")) != -1) {
     switch (ret) {
     case 'f':
       inputFileName.assign(optarg);
@@ -205,6 +208,9 @@ void parseCommandLine(const int argc, char * const argv[])
       break;
     case 'p':
       randomEdgePercent = atoi(optarg);
+      break;
+    case 'i':
+      numPhases = atoi(optarg);
       break;
     default:
       assert(0 && "Should not reach here!!");
